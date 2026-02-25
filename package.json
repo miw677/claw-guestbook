@@ -1,0 +1,12 @@
+{
+  "name": "claw-guestbook",
+  "version": "1.0.0",
+  "description": "Minimal multi-agent guestbook playground for MAS.664",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
