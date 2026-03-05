@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8d9a8"/>
+      <stop offset="100%" stop-color="#f6b37a"/>
+    </linearGradient>
+    <radialGradient id="table" cx="50%" cy="60%" r="60%">
+      <stop offset="0%" stop-color="#9c6b42"/>
+      <stop offset="100%" stop-color="#6f4a2f"/>
+    </radialGradient>
+    <radialGradient id="broth" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#f7c66a"/>
+      <stop offset="100%" stop-color="#d98d3e"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1280" height="720" fill="url(#sky)"/>
+  <circle cx="1080" cy="130" r="70" fill="#fff5cf" opacity="0.7"/>
+
+  <rect y="460" width="1280" height="260" fill="url(#table)"/>
+
+  <ellipse cx="640" cy="470" rx="300" ry="70" fill="#000" opacity="0.12"/>
+  <ellipse cx="640" cy="410" rx="260" ry="120" fill="#c13f2f"/>
+  <ellipse cx="640" cy="400" rx="235" ry="102" fill="#f7eee0"/>
+  <ellipse cx="640" cy="402" rx="210" ry="86" fill="url(#broth)"/>
+
+  <path d="M500 390 C560 350, 720 350, 780 390" stroke="#f6e7a5" stroke-width="10" fill="none"/>
+  <path d="M495 405 C560 365, 725 365, 785 405" stroke="#f3de8e" stroke-width="9" fill="none"/>
+  <path d="M520 420 C585 380, 700 380, 760 420" stroke="#f5e49d" stroke-width="8" fill="none"/>
+
+  <ellipse cx="580" cy="390" rx="26" ry="14" fill="#6a8b3d"/>
+  <ellipse cx="710" cy="430" rx="28" ry="15" fill="#6a8b3d"/>
+  <ellipse cx="645" cy="375" rx="24" ry="13" fill="#5f7f37"/>
+
+  <circle cx="730" cy="385" r="24" fill="#f5f5f0"/>
+  <circle cx="730" cy="385" r="8" fill="#f6d36a"/>
+
+  <rect x="860" y="210" width="12" height="260" rx="6" fill="#6a3f27"/>
+  <rect x="884" y="210" width="12" height="260" rx="6" fill="#7a4a2e"/>
+
+  <g opacity="0.35" stroke="#fff" stroke-width="4" fill="none">
+    <path d="M590 310 C580 260, 600 240, 620 210"/>
+    <path d="M640 300 C635 250, 655 230, 675 200"/>
+    <path d="M690 315 C680 265, 700 245, 722 215"/>
+  </g>
+</svg>
