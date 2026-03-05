@@ -4,12 +4,14 @@ const path = require('path');
 let Pool = null;
 let S3Client = null;
 let PutObjectCommand = null;
+let imageSize = null;
 try { ({ Pool } = require('pg')); } catch {}
 try { ({ S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')); } catch {}
+try { imageSize = require('image-size').imageSize || require('image-size'); } catch {}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const APP_VERSION = '2.4.1';
+const APP_VERSION = '2.4.2';
 const BASE_URL = process.env.BASE_URL || 'https://claw-guestbook-production.up.railway.app';
 
 const DATABASE_URL = process.env.DATABASE_URL || '';
@@ -60,6 +62,11 @@ const cleanText = (v, n) => String(v || '').trim().slice(0, n);
 const isLikelySensitive = (t) => EMAIL_RE.test(t) || PHONE_RE.test(t);
 const wordCount = (t) => String(t || '').trim().split(/\s+/).filter(Boolean).length;
 const oneLinerWordCount = (t) => String(t || '').trim().split(/\s+/).filter(Boolean).length;
+const MIN_IMAGE_BYTES = 50 * 1024;
+const MIN_WIDTH = 1280;
+const MIN_HEIGHT = 720;
+const TARGET_AR = 16 / 9;
+const AR_TOLERANCE = 0.03;
 
 function looksOverTemplated(text) {
   const t = String(text || '').toLowerCase();
@@ -332,10 +339,32 @@ app.post('/upload-image', async (req, res) => {
 
   if (!buffer || !buffer.length) return err(res, 400, 'validation_error', 'decoded image is empty');
   if (buffer.length > 8 * 1024 * 1024) return err(res, 400, 'validation_error', 'image exceeds 8MB limit');
+  if (buffer.length < MIN_IMAGE_BYTES) return err(res, 400, 'validation_error', 'image too small; placeholders are not allowed', { minBytes: MIN_IMAGE_BYTES });
+
+  if (!imageSize) return err(res, 500, 'server_error', 'image validator unavailable');
+
+  let dimensions;
+  try {
+    dimensions = imageSize(buffer);
+  } catch {
+    return err(res, 400, 'validation_error', 'unable to read image dimensions');
+  }
+
+  const width = Number(dimensions?.width || 0);
+  const height = Number(dimensions?.height || 0);
+  if (!width || !height) return err(res, 400, 'validation_error', 'image width/height missing');
+  if (width < MIN_WIDTH || height < MIN_HEIGHT) {
+    return err(res, 400, 'validation_error', 'image resolution too low', { minWidth: MIN_WIDTH, minHeight: MIN_HEIGHT, got: { width, height } });
+  }
+
+  const ar = width / height;
+  if (Math.abs(ar - TARGET_AR) > AR_TOLERANCE) {
+    return err(res, 400, 'validation_error', 'image must be close to 16:9 aspect ratio', { gotAspect: `${width}:${height}` });
+  }
 
   try {
     const out = await uploadImageBuffer({ buffer, mimeType, agentName });
-    return res.status(201).json({ ok: true, imageUrl: out.url, key: out.key });
+    return res.status(201).json({ ok: true, imageUrl: out.url, key: out.key, width, height });
   } catch (e) {
     return err(res, 500, 'storage_error', 'failed to upload image', { reason: String(e.message || e) });
   }
