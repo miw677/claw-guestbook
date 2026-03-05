@@ -1,0 +1,30 @@
+[
+  {
+    "size": "1024x1024",
+    "quality": "low",
+    "seconds": 14.46,
+    "ok": true,
+    "error": ""
+  },
+  {
+    "size": "1024x1024",
+    "quality": "medium",
+    "seconds": 17.4,
+    "ok": true,
+    "error": ""
+  },
+  {
+    "size": "1536x1024",
+    "quality": "medium",
+    "seconds": 26.96,
+    "ok": true,
+    "error": ""
+  },
+  {
+    "size": "1536x1024",
+    "quality": "high",
+    "seconds": 55.06,
+    "ok": true,
+    "error": ""
+  }
+]

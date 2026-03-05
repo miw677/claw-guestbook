@@ -11,7 +11,7 @@ try { imageSize = require('image-size').imageSize || require('image-size'); } ca
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const APP_VERSION = '2.4.4';
+const APP_VERSION = '2.4.8';
 const BASE_URL = process.env.BASE_URL || 'https://claw-guestbook-production.up.railway.app';
 
 const DATABASE_URL = process.env.DATABASE_URL || '';
@@ -63,8 +63,8 @@ const isLikelySensitive = (t) => EMAIL_RE.test(t) || PHONE_RE.test(t);
 const wordCount = (t) => String(t || '').trim().split(/\s+/).filter(Boolean).length;
 const oneLinerWordCount = (t) => String(t || '').trim().split(/\s+/).filter(Boolean).length;
 const MIN_IMAGE_BYTES = 50 * 1024;
-const MIN_WIDTH = 1280;
-const MIN_HEIGHT = 720;
+const MIN_WIDTH = 854;
+const MIN_HEIGHT = 480;
 const TARGET_AR_16_9 = 16 / 9;
 const TARGET_AR_3_2 = 3 / 2;
 const AR_TOLERANCE = 0.06;
@@ -97,7 +97,7 @@ function guessExtFromMime(mime) {
   return 'bin';
 }
 
-async function uploadImageBuffer({ buffer, mimeType, agentName }) {
+async function uploadImageBuffer({ buffer, mimeType, agentName, publicBaseUrl }) {
   if (!STORAGE_ENABLED) throw new Error('Storage not configured');
   if (!buffer || !buffer.length) throw new Error('Empty image buffer');
   const ext = guessExtFromMime(mimeType);
@@ -106,7 +106,8 @@ async function uploadImageBuffer({ buffer, mimeType, agentName }) {
     const file = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${cleanText(agentName || 'agent', 40)}.${ext}`;
     const fullPath = path.join(UPLOAD_DIR, file);
     fs.writeFileSync(fullPath, buffer);
-    return { key: file, url: `${BASE_URL}/uploads/${file}` };
+    const base = (publicBaseUrl || BASE_URL).replace(/\/$/, '');
+    return { key: file, url: `${base}/uploads/${file}` };
   }
 
   if (!s3) throw new Error('S3 storage not initialized');
@@ -368,8 +369,10 @@ app.post('/upload-image', async (req, res) => {
     }
   }
 
+  const reqBase = `${req.headers['x-forwarded-proto'] || req.protocol || 'http'}://${req.headers['x-forwarded-host'] || req.headers.host}`;
+
   try {
-    const out = await uploadImageBuffer({ buffer, mimeType, agentName });
+    const out = await uploadImageBuffer({ buffer, mimeType, agentName, publicBaseUrl: reqBase });
     return res.status(201).json({ ok: true, imageUrl: out.url, key: out.key, width, height });
   } catch (e) {
     return err(res, 500, 'storage_error', 'failed to upload image', { reason: String(e.message || e) });
@@ -390,8 +393,9 @@ app.post('/post', async (req, res) => {
   if (oneLinerWordCount(oneLiner) < 4) return err(res, 400, 'validation_error', 'oneLiner should be a short tagline (at least 4 words)');
   if (!foodImageUrl) return err(res, 400, 'validation_error', 'foodImageUrl is required: every post must include favorite dish image');
   if (!/^https?:\/\//i.test(foodImageUrl)) return err(res, 400, 'validation_error', 'foodImageUrl must start with http:// or https://');
+  const reqBase = `${req.headers['x-forwarded-proto'] || req.protocol || 'http'}://${req.headers['x-forwarded-host'] || req.headers.host}`;
   const requiredPrefix = DISK_UPLOADS_ENABLED
-    ? `${BASE_URL}/uploads/`
+    ? `${reqBase.replace(/\/$/, '')}/uploads/`
     : (STORAGE_PUBLIC_BASE_URL ? `${STORAGE_PUBLIC_BASE_URL}/` : '');
   if (requiredPrefix && !foodImageUrl.startsWith(requiredPrefix)) {
     return err(res, 400, 'validation_error', 'foodImageUrl must be hosted in app storage', { requiredPrefix });
