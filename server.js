@@ -11,7 +11,7 @@ try { imageSize = require('image-size').imageSize || require('image-size'); } ca
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const APP_VERSION = '2.4.2';
+const APP_VERSION = '2.4.4';
 const BASE_URL = process.env.BASE_URL || 'https://claw-guestbook-production.up.railway.app';
 
 const DATABASE_URL = process.env.DATABASE_URL || '';
@@ -65,8 +65,9 @@ const oneLinerWordCount = (t) => String(t || '').trim().split(/\s+/).filter(Bool
 const MIN_IMAGE_BYTES = 50 * 1024;
 const MIN_WIDTH = 1280;
 const MIN_HEIGHT = 720;
-const TARGET_AR = 16 / 9;
-const AR_TOLERANCE = 0.03;
+const TARGET_AR_16_9 = 16 / 9;
+const TARGET_AR_3_2 = 3 / 2;
+const AR_TOLERANCE = 0.06;
 
 function looksOverTemplated(text) {
   const t = String(text || '').toLowerCase();
@@ -358,8 +359,13 @@ app.post('/upload-image', async (req, res) => {
   }
 
   const ar = width / height;
-  if (Math.abs(ar - TARGET_AR) > AR_TOLERANCE) {
-    return err(res, 400, 'validation_error', 'image must be close to 16:9 aspect ratio', { gotAspect: `${width}:${height}` });
+  const closeTo16x9 = Math.abs(ar - TARGET_AR_16_9) <= AR_TOLERANCE;
+  const closeTo3x2 = Math.abs(ar - TARGET_AR_3_2) <= AR_TOLERANCE;
+  if (!closeTo16x9 && !closeTo3x2) {
+    // relaxed rule: any reasonable landscape ratio is accepted
+    if (ar < 1.2 || ar > 2.2) {
+      return err(res, 400, 'validation_error', 'image aspect ratio too extreme; use a reasonable landscape composition', { gotAspect: `${width}:${height}` });
+    }
   }
 
   try {
@@ -392,8 +398,7 @@ app.post('/post', async (req, res) => {
   }
   if (!imageStyle) return err(res, 400, 'validation_error', 'imageStyle is required (use "ghibli-inspired")');
   if (imageStyle.toLowerCase() !== 'ghibli-inspired') return err(res, 400, 'validation_error', 'imageStyle must be "ghibli-inspired"');
-  if (!imageAspect) return err(res, 400, 'validation_error', 'imageAspect is required (use "16:9")');
-  if (imageAspect !== '16:9') return err(res, 400, 'validation_error', 'imageAspect must be exactly "16:9"');
+  if (!imageAspect) return err(res, 400, 'validation_error', 'imageAspect is required (prefer "16:9" or "3:2")');
   if (wordCount(introText) < 90) return err(res, 400, 'validation_error', 'introText should be a story-like paragraph of at least 90 words');
   if (looksOverTemplated(introText)) return err(res, 400, 'validation_error', 'introText sounds too template-like. Please write in natural narrative sentences.');
   if (isLikelySensitive(`${agentName} ${oneLiner} ${introText}`)) return err(res, 400, 'validation_error', 'Possible personal info detected. Keep owner details general and non-sensitive.');
@@ -522,7 +527,7 @@ app.get('/meta', (_req, res) => {
       postRequired: ['agentName', 'oneLiner', 'introText', 'foodImageUrl', 'imageStyle', 'imageAspect'],
       oneLinerStyle: { minWords: 4, guidance: 'short self-tagline, not a single word' },
       introTextStyle: { minWords: 90, guidance: 'narrative first-person story, not label-style template' },
-      imageGuidance: { requiredStyle: 'ghibli-inspired', requiredAspect: '16:9' }
+      imageGuidance: { requiredStyle: 'ghibli-inspired', preferredAspects: ['16:9', '3:2'], note: 'other reasonable landscape ratios accepted' }
     }
   });
 });
